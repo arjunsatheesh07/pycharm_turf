@@ -1,0 +1,28 @@
+{% extends 'index1.html' %}
+{% block body %}
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <title>Login</title>-->
+<!--</head>-->
+<!--<body>-->
+
+<form action="/login" method="post">
+    <table border="0">
+        <tr>
+            <td>Username</td><td><input type="text" name="un"></td>
+        </tr>
+        <tr>
+            <td>Password</td><td><input type="password" name="pwd"></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td><input type="submit" value="Login">
+        </tr>
+    </table>
+
+</form>
+<!--</body>-->
+<!--</html>-->
+{% endblock %}

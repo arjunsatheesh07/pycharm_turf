@@ -1,0 +1,33 @@
+{% extends 'index2.html' %}
+{% block body %}
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <title>Verification</title>-->
+<!--</head>-->
+<!--<body>-->
+<form method="post" action="">
+    <table border="1">
+        <tr>
+            <th>Name</th>
+            <th>Place</th>
+            <th>Landmark</th><th>Phno</th><th>Email</th><th></th><th></th>
+        </tr>
+         {% for i in val %}
+        <tr>
+            <td>{{i[6]}}</td>
+            <td>{{i[7]}}</td>
+            <td>{{i[8]}}</td>
+            <td>{{i[9]}}</td>
+            <td>{{i[10]}}</td>
+            <td><a href="/accepted?lid={{i[0]}}">Accept</a></td>
+            <td><a href="/rejected">Reject</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</form>
+<br><br>
+<!--</body>-->
+<!--</html>-->
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'index2.html' %}
+{% block body %}
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <title>Title</title>-->
+<!--</head>-->
+<!--<body>-->
+<form method="post" action="/viewturf">
+    <table border="1">
+        <tr>
+            <th>Name</th>
+            <th>Place</th><th>Landmark</th><th>Phno</th><th>Email</th><th></th>
+        </tr>
+        {% for i in val %}
+        <tr>
+            <td>{{i[2]}}</td><td>{{i[3]}}</td><td>{{i[4]}}</td><td>{{i[5]}}</td><td>{{i[6]}}</td>
+            <td><a href="/viewturf?tid={{i[0]}}">Click here</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</form>
+{% endblock %}
