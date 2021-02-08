@@ -74,6 +74,7 @@ def addnewturf():
         print(str(e))
         return jsonify({'task': "Faild"})
 
+#for adding facilities of turf
 @app.route('/addfacility',methods=['post'])
 def addfacility():
     facility = request.form['facility']
@@ -193,36 +194,8 @@ def feedbackturfview():
     cmd.execute("SELECT tid,name  FROM turf_registration ")
     con.commit()
 
-
-
-@app.route('/insertslots',methods=['post'])
-def insertslots():
-    try:
-        slot = request.form['slot']
-        tid=request.form['tid']
-        cmd.execute("insert into sloat_status values(null,'"+str(tid)+"',curdate(),'"+slot+"','available')")
-        con.commit()
-        return jsonify({'task':'ok'})
-    except Exception as e:
-        print(str(e))
-        return jsonify({'task': "Duplicate Enryyyy"})
-
-# booked details
-@app.route('/bookinghistory',methods=['post'])
-def bookinghistory():
-    tid=request.form['tid']
-    print(tid)
-    cmd.execute("SELECT `booking`.*,`turf_registration`.* ,`user_reg`.`fname`,`lname`,`mname` FROM `booking` JOIN `turf_registration` ON `booking`.`tid`=`turf_registration`.`lid` JOIN `user_reg` ON `user_reg`.`lid`=`booking`.`uid` WHERE `booking`.`tid`='"+tid+"' AND `booking`.`status`='pending'")
-    row_headers = [x[0] for x in cmd.description]
-    results = cmd.fetchall()
-    json_data = []
-    for result in results:
-        json_data.append(dict(zip(row_headers, result)))
-    con.commit()
-    print(results, json_data)
-    return jsonify(json_data)
-
 #for turf owner
+
 @app.route('/viewmyslot',methods=['post'])
 def viewmyslot():
     tid=request.form['tid']
@@ -269,6 +242,32 @@ def ownerviewturf():
 
 
 
+@app.route('/insertslots',methods=['post'])
+def insertslots():
+    try:
+        slot = request.form['slot']
+        tid=request.form['tid']
+        cmd.execute("insert into sloat_status values(null,'"+str(tid)+"',curdate(),'"+slot+"','available')")
+        con.commit()
+        return jsonify({'task':'ok'})
+    except Exception as e:
+        print(str(e))
+        return jsonify({'task': "Duplicate Enryyyy"})
+
+# booked details
+@app.route('/bookinghistory',methods=['post'])
+def bookinghistory():
+    tid=request.form['tid']
+    print(tid)
+    cmd.execute("SELECT `booking`.*,`turf_registration`.* ,`user_reg`.`fname`,`lname`,`mname` FROM `booking` JOIN `turf_registration` ON `booking`.`tid`=`turf_registration`.`lid` JOIN `user_reg` ON `user_reg`.`lid`=`booking`.`uid` WHERE `booking`.`tid`='"+tid+"' AND `booking`.`status`='pending'")
+    row_headers = [x[0] for x in cmd.description]
+    results = cmd.fetchall()
+    json_data = []
+    for result in results:
+        json_data.append(dict(zip(row_headers, result)))
+    con.commit()
+    print(results, json_data)
+    return jsonify(json_data)
 
 
 # Booking for user
