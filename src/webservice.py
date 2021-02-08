@@ -77,19 +77,22 @@ def addnewturf():
 #for adding facilities of turf
 @app.route('/addfacility',methods=['post'])
 def addfacility():
-    facility = request.form['facility']
-    description = request.form['description']
-    lid = request.form['lid']
-    img = request.files['files']
+    try:
+        facility = request.form['facility']
+        description = request.form['description']
+        lid = request.form['tid']
+        img = request.files['files']
 
-    fn = datetime.now().strftime("%Y%m%d_%H%M%S") + ".jpg"
-    print(fn)
-    path1="static/fecility/"
-    img.save("static/fecility/"+fn)
-    print("ok")
-    cmd.execute("insert into facilities values(NULL,'"+str(lid)+"','"+str(facility)+"','"+str(description)+"','"+fn+"')")
-    con.commit()
-    return jsonify({'task': "success"})
+        fn = datetime.now().strftime("%Y%m%d_%H%M%S") + ".jpg"
+        print(fn)
+        path1="static/fecility/"
+        img.save("static/fecility/"+fn)
+        print("ok")
+        cmd.execute("insert into facilities values(NULL,'"+str(lid)+"','"+str(facility)+"','"+str(description)+"','"+fn+"')")
+        con.commit()
+        return jsonify({'task': "success"})
+    except Exception as e:
+
 
 
 @app.route('/signupuser',methods=['post','get'])
@@ -118,7 +121,8 @@ def signupuser():
 
 @app.route('/viewfacility',methods=['post'])
 def viewfacility():
-    cmd.execute("SELECT * FROM facilities")
+    tid=request.form['tid']
+    cmd.execute("SELECT * FROM facilities where tid='"+tid+"'")
 
     row_headers = [x[0] for x in cmd.description]
     results = cmd.fetchall()
@@ -175,7 +179,21 @@ def viewturf():
 @app.route('/turfviewuser',methods=['post'])
 def turfviewuser():
 
-    cmd.execute("SELECT `turf_registration`.*,`turfrating`.`rating` ,`facilities`.`facility`,`facilities`.`description` , facilities.image as fimage FROM `turfrating` JOIN `turf_registration` ON `turf_registration`.`lid`=`turfrating`.`tid` JOIN `facilities` ON `facilities`.`tid`=`turf_registration`.`lid`")
+
+    cmd.execute("SELECT `turf_registration`.*,`turfrating`.`rating` ,`facilities`.`facility`,`facilities`.`description` , facilities.image as fimage FROM `turfrating` JOIN `turf_registration` ON `turf_registration`.`lid`=`turfrating`.`tid` JOIN `facilities` ON `facilities`.`tid`=`turf_registration`.`lid` ")
+    row_headers = [x[0] for x in cmd.description]
+    results = cmd.fetchall()
+    json_data = []
+    for result in results:
+        json_data.append(dict(zip(row_headers, result)))
+    con.commit()
+    print(results, json_data)
+    return jsonify(json_data)
+
+@app.route('/owneruniqueturf',methods=['post'])
+def owneruniqueturf():
+    logid = request.form['lid']
+    cmd.execute("SELECT `turf_registration`.*,`turfrating`.`rating` ,`facilities`.`facility`,`facilities`.`description` , facilities.image as fimage FROM `turfrating` JOIN `turf_registration` ON `turf_registration`.`lid`=`turfrating`.`tid` JOIN `facilities` ON `facilities`.`tid`=`turf_registration`.`lid` where lid='"+logid+"'")
     row_headers = [x[0] for x in cmd.description]
     results = cmd.fetchall()
     json_data = []
@@ -725,10 +743,27 @@ def removeslot():
 # insertfeedetails
 @app.route('/feeinsert',methods=['post'])
 def feeinsert():
-
-    cmd.execute("insert into fee_details values()")
+    amount = request.form['amount']
+    tid = request.form['tid']
+    cmd.execute("insert into fee_details values(null,'"+tid+"','"+amount+"')")
     con.commit()
     return jsonify({'task': "success"})
+
+#for getting same turf info of a particular user
+@app.route('/turfunique',methods=['post'])
+def turfunique():
+    ttid = request.form['lid']
+
+    cmd.execute("select * from turf_registration where lid='"+ttid+"'")
+    row_headers = [x[0] for x in cmd.description]
+    results = cmd.fetchall()
+    json_data = []
+    for result in results:
+        json_data.append(dict(zip(row_headers, result)))
+    con.commit()
+    print(results, json_data)
+    return jsonify(json_data)
+
 
 
 
