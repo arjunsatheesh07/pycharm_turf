@@ -92,7 +92,8 @@ def addfacility():
         con.commit()
         return jsonify({'task': "success"})
     except Exception as e:
-
+        print(str(e))
+        return jsonify({'task': "Failed"})
 
 
 @app.route('/signupuser',methods=['post','get'])
@@ -122,6 +123,7 @@ def signupuser():
 @app.route('/viewfacility',methods=['post'])
 def viewfacility():
     tid=request.form['tid']
+    print(tid)
     cmd.execute("SELECT * FROM facilities where tid='"+tid+"'")
 
     row_headers = [x[0] for x in cmd.description]
@@ -193,7 +195,7 @@ def turfviewuser():
 @app.route('/owneruniqueturf',methods=['post'])
 def owneruniqueturf():
     logid = request.form['lid']
-    cmd.execute("SELECT `turf_registration`.*,`turfrating`.`rating` ,`facilities`.`facility`,`facilities`.`description` , facilities.image as fimage FROM `turfrating` JOIN `turf_registration` ON `turf_registration`.`lid`=`turfrating`.`tid` JOIN `facilities` ON `facilities`.`tid`=`turf_registration`.`lid` where lid='"+logid+"'")
+    cmd.execute("SELECT turf_registration.*,AVG(rating) as rating FROM  `turf_registration` left JOIN turfrating ON  `turfrating`.`tid`=`turf_registration`.`tid` WHERE turf_registration.lid='"+logid+"'   GROUP BY `turfrating`.tid ")
     row_headers = [x[0] for x in cmd.description]
     results = cmd.fetchall()
     json_data = []
@@ -308,10 +310,11 @@ def userbooking():
                 if dd is None:
 
                     cmd.execute("insert into booking values(null,'"+uid+"','"+tid+"',curdate(),'"+bdate+"','"+i+"','pending')")
-                    con.commit()
+
                 else:
                     return jsonify({'task': "already..."})
-            return jsonify({'task': "success"})
+        con.commit()
+        return jsonify({'task': "success"})
 
 
 
@@ -327,15 +330,56 @@ def bookstatusupdate():
     cmd.execute("UPDATE booking  set status='booked' WHERE `bid`='"+tid+"'")
     con.commit()
     return jsonify({'task': "success"})
-# feedback by user
+
+
+# feedback for app
 @app.route('/feedback',methods=['post','get'])
 def feedback():
     uid=request.form['uid']
-    fdback = request.form['feedback']
+    print(uid)
+    fdback = request.form['feed']
+    print(fdback)
     rate = request.form['rating']
-    cmd.execute("insert into feedback values(null,'"+uid+"','"+fdback+"','"+rate+"',curdate())")
+    print(rate)
+    cmd.execute("SELECT * FROM `feedback` where uid='"+uid+"'")
+    s=cmd.fetchall()
+
+    if s is None:
+
+        cmd.execute("insert into feedback values(null,'" + uid + "','" + fdback + "','" + rate + "',curdate())")
+        con.commit()
+        return jsonify({'task': "success"})
+
+    else:
+        cmd.execute("update feedback set feedback='" + fdback + "',rating='" + rate + "',date=curdate() where feedback.uid='" + str(uid) + "'")
+        con.commit()
+        return jsonify({'task': "success"})
+
+# feedback by user
+@app.route('/feedbackbyuser',methods=['post','get'])
+def feedbackbyuser():
+    uid=request.form['uid']
+    print(uid)
+    tid = request.form['tid']
+    fdback = request.form['feed']
+    print(fdback)
+    rate = request.form['rating']
+    print(rate)
+    cmd.execute("SELECT * FROM `turfrating` where uid='"+uid+"'")
+    s=cmd.fetchone()
+
+    # if s is None:
+
+    cmd.execute("insert into turfrating values(null,'" + tid + "','" + uid + "','" + rate + "','" + fdback + "')")
     con.commit()
     return jsonify({'task': "success"})
+
+    # else:
+    #     cmd.execute("update turfrating set rating='" + rate + "',feedback='" + fdback + "' where feedback.uid='" + str(uid) + "'")
+    #     con.commit()
+    #     return jsonify({'task': "success"})
+
+
 
 # payment by user
 @app.route('/payment',methods=['post','get'])
@@ -763,6 +807,54 @@ def turfunique():
     con.commit()
     print(results, json_data)
     return jsonify(json_data)
+
+
+
+
+
+@app.route('/viewnearst_turf',methods=['post'])
+def viewnearst_turf():
+    latitude = request.form['latti']
+    print(latitude)
+    longitude = request.form['longi']
+    print(longitude)
+    # aid=request.form['aid']
+    # print(cid,"cidddd")
+    print(latitude, longitude)
+    cmd.execute("SELECT distinct `turf_registration`.*,`fee_details`.`amount`,(3959 * ACOS ( COS ( RADIANS('"+str(latitude)+"') ) * COS( RADIANS(`turf_registration`.`latti`) ) * COS( RADIANS(`turf_registration`.`longi`) - RADIANS('"+str(longitude)+"') ) + SIN ( RADIANS('"+str(latitude)+"') ) * SIN( RADIANS(`turf_registration`.`latti`) ))) AS user_distance FROM `turf_registration` LEFT JOIN `fee_details` ON  `turf_registration`.`tid`=`fee_details`.`tid` HAVING user_distance  < 6.2137")
+    row_headers = [x[0] for x in cmd.description]
+    results = cmd.fetchall()
+    json_data = []
+    for result in results:
+        json_data.append(dict(zip(row_headers, result)))
+    con.commit()
+    print(json_data)
+    return jsonify(json_data)
+
+
+@app.route('/updateturfinfo',methods=['post'])
+def updateturfinfo():
+    tid=request.form['uid']
+    print(tid)
+    name = request.form['name']
+    print(name)
+    place = request.form['place']
+    print(place)
+    landmark = request.form['landmark']
+    print(landmark)
+    phno = request.form['phno']
+    print(phno)
+    mail = request.form['email']
+    print(mail)
+    latt = request.form['latti']
+    print(latt)
+    long = request.form['longi']
+    print(long)
+
+
+    cmd.execute("update  turf_registration set name='"+str(name)+"',place='"+str(place)+"',landmark='"+str(landmark)+"',phno='"+str(phno)+"',mail_id='"+str(mail)+"',latti='"+str(latt)+"',longi='"+str(long)+"' where lid='"+str(tid)+"'")
+    con.commit()
+    return jsonify({'task': "success"})
 
 
 
