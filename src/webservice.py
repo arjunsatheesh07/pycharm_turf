@@ -220,7 +220,7 @@ def feedbackturfview():
 def viewmyslot():
     tid=request.form['tid']
     print(tid)
-    cmd.execute("SELECT * from sloat_status  WHERE `tid`='"+tid+"'")
+    cmd.execute("SELECT * from sloat_status  WHERE `tid`='"+tid+"' and status='booked'")
     row_headers = [x[0] for x in cmd.description]
     results = cmd.fetchall()
     json_data = []
@@ -235,15 +235,50 @@ def viewmyslot():
 #slot view for user
 @app.route('/viewmyslotavail',methods=['post'])
 def viewmyslotavail():
+    print(request.form)
+    date=request.form['date']
+    tid = request.form['tid']
+    cmd.execute("SELECT `sloat` FROM `sloat_status` WHERE `status`='booked' AND `date`='"+date+"' AND  `tid`='"+tid+"' UNION SELECT `slot` FROM `booking` WHERE `tid`='"+tid+"' AND `bdate`='"+date+"' and status!='pending'")
+    s=cmd.fetchall()
 
-    cmd.execute("SELECT * FROM `sloat_status` where status!='booked'")
-    row_headers = [x[0] for x in cmd.description]
-    results = cmd.fetchall()
+    lis=[]
+    for i in s:
+        lis.append(i[0])
+    sloats=[]
+    sloats.append("01 to 02");
+    sloats.append("02 to 03");
+    sloats.append("03 to 04");
+    sloats.append("04 to 05");
+    sloats.append("05 to 06");
+    sloats.append("06 to 07");
+    sloats.append("07 to 08");
+    sloats.append("08 to 09");
+    sloats.append("09 to 10");
+    sloats.append("10 to 11");
+    sloats.append("11 to 12");
+    sloats.append("12 to 13");
+    sloats.append("13 to 14");
+    sloats.append("14 to 15");
+    sloats.append("15 to 16");
+    sloats.append("16 to 17");
+    sloats.append("17 to 18");
+    sloats.append("18 to 19");
+    sloats.append("19 to 20");
+    sloats.append("20 to 21");
+    sloats.append("21 to 22");
+    sloats.append("22 to 23");
+    sloats.append("23 to 00");
+    sloats.append("00 to 01");
+
+
+    row_headers =["sloat"]
+
     json_data = []
-    for result in results:
-        json_data.append(dict(zip(row_headers, result)))
+    for result in sloats:
+        if result not in lis:
+            json_data.append(dict(zip(row_headers, [result])))
     con.commit()
-    print(results, json_data)
+    print( json_data)
     return jsonify(json_data)
 
 
@@ -267,9 +302,17 @@ def insertslots():
     try:
         slot = request.form['slot']
         tid=request.form['tid']
-        cmd.execute("insert into sloat_status values(null,'"+str(tid)+"',curdate(),'"+slot+"','available')")
-        con.commit()
-        return jsonify({'task':'ok'})
+        date=request.form['date']
+        cmd.execute("SELECT * FROM `sloat_status` WHERE `tid`='"+tid+"' AND `date`='"+date+"' AND `sloat`='"+slot+"' ")
+        s=cmd.fetchone()
+        if s is None:
+            cmd.execute("insert into sloat_status values(null,'"+str(tid)+"','"+date+"','"+slot+"','booked')")
+            con.commit()
+            return jsonify({'task':'ok'})
+        else:
+            return jsonify({'task': "Duplicate Enryyyy"})
+
+
     except Exception as e:
         print(str(e))
         return jsonify({'task': "Duplicate Enryyyy"})
@@ -293,6 +336,7 @@ def bookinghistory():
 # Booking for user
 @app.route('/userbooking',methods=['post','get'])
 def userbooking():
+    print(request.form)
     try:
         uid=request.form['uid']
         tid = request.form['tid']
@@ -302,24 +346,27 @@ def userbooking():
 
         ss=nos.split("@")
         print(ss)
+        bookingids=""
         for i in ss:
             print(i)
             if i!="":
-                cmd.execute("select *  from booking where uid='" + uid + "'and  slot='"+i+"' and date=curdate()")
+                cmd.execute("select *  from booking where uid='" + uid + "'and  slot='"+i+"' and date='"+bdate+"'")
                 dd=cmd.fetchone()
                 if dd is None:
 
                     cmd.execute("insert into booking values(null,'"+uid+"','"+tid+"',curdate(),'"+bdate+"','"+i+"','pending')")
+                    bookingids=bookingids+str(con.insert_id())+"#"
 
                 else:
                     return jsonify({'task': "already..."})
         con.commit()
-        return jsonify({'task': "success"})
+        print(bookingids)
+        return jsonify({'task': "success","bid":bookingids})
 
 
 
     except Exception as e:
-        print(str(e))
+        print("error================================="+str(e))
         return jsonify({'task': "Faild"})
 
 
@@ -390,6 +437,43 @@ def payment():
     con.commit()
     return jsonify({'task': "success"})
 
+
+
+#final payment
+@app.route('/finalpay',methods=['post','get'])
+def finalpay():
+    print(request.form)
+
+    bid=request.form['bid']
+    bidd=bid.split("#")
+
+    bname = request.form['bname']
+    accno = request.form['accno']
+    ifsc = request.form['ifsc']
+    phno = request.form['phno']
+    amt = request.form['amt']
+    cmd.execute("SELECT `balance`,`bank_id` FROM `bank` WHERE `bname`='"+bname+"' AND `accno`='"+accno+"' AND `ifsc`='"+ifsc+"' AND `phno`='"+phno+"' ")
+    s=cmd.fetchone()
+    if s is not None:
+        if float(s[0])>float(amt):
+            for i in bidd:
+                if i!='':
+                    cmd.execute("UPDATE `booking` SET `status`='booked' WHERE `bid`='"+i+"'")
+                    con.commit()
+            cmd.execute("SELECT `tid` FROM `booking` WHERE `bid`='"+bidd[0]+"'")
+            ss=cmd.fetchone()
+            cmd.execute("insert into payment values(null,'"+str(ss[0])+"','"+amt+"',curdate(),'pending')")
+            cmd.execute("UPDATE `bank` SET `balance`=`balance`-"+amt+" WHERE `bank_id`='"+str(s[1])+"'")
+            con.commit()
+            return jsonify({'task': "success"})
+        else:
+            for i in bidd:
+                if i!='':
+                    cmd.execute("delete from `booking`  WHERE `bid`='"+i+"'")
+                    con.commit()
+            return jsonify({'task': "no balance"})
+    else:
+        return jsonify({'task': "Invalid data"})
 
 # @app.route('/viewwork')
 # def viewwork():
@@ -821,7 +905,8 @@ def viewnearst_turf():
     # aid=request.form['aid']
     # print(cid,"cidddd")
     print(latitude, longitude)
-    cmd.execute("SELECT distinct `turf_registration`.*,`fee_details`.`amount`,(3959 * ACOS ( COS ( RADIANS('"+str(latitude)+"') ) * COS( RADIANS(`turf_registration`.`latti`) ) * COS( RADIANS(`turf_registration`.`longi`) - RADIANS('"+str(longitude)+"') ) + SIN ( RADIANS('"+str(latitude)+"') ) * SIN( RADIANS(`turf_registration`.`latti`) ))) AS user_distance FROM `turf_registration` LEFT JOIN `fee_details` ON  `turf_registration`.`tid`=`fee_details`.`tid` HAVING user_distance  < 6.2137")
+    # cmd.execute("SELECT distinct `turf_registration`.*,`fee_details`.`amount`,(3959 * ACOS ( COS ( RADIANS('"+str(latitude)+"') ) * COS( RADIANS(`turf_registration`.`latti`) ) * COS( RADIANS(`turf_registration`.`longi`) - RADIANS('"+str(longitude)+"') ) + SIN ( RADIANS('"+str(latitude)+"') ) * SIN( RADIANS(`turf_registration`.`latti`) ))) AS user_distance FROM `turf_registration` LEFT JOIN `fee_details` ON  `turf_registration`.`tid`=`fee_details`.`tid` HAVING user_distance  < 6.2137")
+    cmd.execute("SELECT DISTINCT `facilities`.`facility`,`facilities`.`description`,`turf_registration`.*,`fee_details`.`amount`,(3959 * ACOS ( COS ( RADIANS('11.2578106') ) * COS( RADIANS(`turf_registration`.`latti`) ) * COS( RADIANS(`turf_registration`.`longi`) - RADIANS('75.7845282') ) + SIN ( RADIANS('11.2578106') ) * SIN( RADIANS(`turf_registration`.`latti`) ))) AS user_distance FROM `turf_registration` LEFT JOIN `fee_details` ON  `turf_registration`.`tid`=`fee_details`.`tid` JOIN `facilities` ON `facilities`.`tid`=`turf_registration`.`tid`HAVING user_distance  < 6.2137")
     row_headers = [x[0] for x in cmd.description]
     results = cmd.fetchall()
     json_data = []
@@ -856,7 +941,67 @@ def updateturfinfo():
     con.commit()
     return jsonify({'task': "success"})
 
+# incomeview
+@app.route('/incomeview',methods=['post'])
+def incomeview():
+    logid = request.form['lid']
 
+    mth = request.form['month']
+    if(mth=="January"):
+
+        month=1
+    if(mth=="February"):
+        month=2
+
+    if (mth == "March"):
+        month = 3
+
+    if (mth == "April"):
+        month = 4
+
+    if (mth == "May"):
+        month = 5
+
+    if (mth == "June"):
+        month = 6
+
+    if (mth == "July"):
+        month = 7
+
+    if (mth == "August"):
+        month = 8
+
+    if (mth == "September"):
+        month = 9
+
+    if (mth == "October"):
+        month = 10
+
+    if (mth == "November"):
+        month = 11
+
+    if (mth == "December"):
+        month = 12
+
+    year = request.form['year']
+
+
+    cmd.execute("SELECT SUM(amount),turf_registration.`name` FROM `payment`  JOIN `turf_registration` ON `turf_registration`.`tid`=`payment`. tid AND `turf_registration`.lid='"+str(logid)+"'  WHERE MONTH(DATE)='"+str(month)+"' AND YEAR(DATE)='"+str(year)+"'   GROUP BY `payment`.tid ")
+
+    s=cmd.fetchone()
+    print(s)
+    if s is None:
+        return jsonify({'task':'none'})
+    else:
+        return jsonify({'task':s[0]})
+
+
+@app.route('/viewallturf',methods=['post'])
+def viewallturf():
+
+    cmd.execute("select * from turf_registration")
+    con.commit()
+    return jsonify({'task': "success"})
 
 
 
